@@ -23,9 +23,11 @@ serve(async (req) => {
     // Retrieve user from auth header
     const authHeader = req.headers.get("Authorization")!;
     const token = authHeader.replace("Bearer ", "");
-    const { data } = await supabaseClient.auth.getUser(token);
-    const user = data.user;
+    const { data, error: authError } = await supabaseClient.auth.getUser(token);
     
+    if (authError) throw new Error(`Authentication error: ${authError.message}`);
+    
+    const user = data.user;
     if (!user?.email) throw new Error("User not authenticated or email not available");
 
     // Initialize Stripe
@@ -33,30 +35,46 @@ serve(async (req) => {
       apiVersion: "2023-10-16",
     });
 
+    console.log(`Checking subscription for user email: ${user.email}`);
+
     // Check if an existing Stripe customer record exists
     const customers = await stripe.customers.list({ email: user.email, limit: 1 });
     if (customers.data.length === 0) {
+      console.log("No Stripe customer found for this email");
       return new Response(JSON.stringify({ subscribed: false }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 200,
       });
     }
 
+    const customerId = customers.data[0].id;
+    console.log(`Found Stripe customer: ${customerId}`);
+
     // Check for active subscriptions
     const subscriptions = await stripe.subscriptions.list({
-      customer: customers.data[0].id,
+      customer: customerId,
       status: "active",
       limit: 1,
     });
 
     const hasActiveSub = subscriptions.data.length > 0;
-    return new Response(JSON.stringify({ subscribed: hasActiveSub }), {
+    console.log(`User has active subscription: ${hasActiveSub}`);
+    
+    return new Response(JSON.stringify({ 
+      subscribed: hasActiveSub,
+      // Include additional subscription details if needed
+      subscriptionDetails: hasActiveSub ? {
+        id: subscriptions.data[0].id,
+        status: subscriptions.data[0].status,
+        currentPeriodEnd: subscriptions.data[0].current_period_end
+      } : null
+    }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
     });
   } catch (error) {
     console.error("Subscription check error:", error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    return new Response(JSON.stringify({ error: error.message, subscribed: false }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 500,
     });

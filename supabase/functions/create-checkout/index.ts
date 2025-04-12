@@ -23,10 +23,14 @@ serve(async (req) => {
     // Retrieve user from auth header
     const authHeader = req.headers.get("Authorization")!;
     const token = authHeader.replace("Bearer ", "");
-    const { data } = await supabaseClient.auth.getUser(token);
-    const user = data.user;
+    const { data, error: authError } = await supabaseClient.auth.getUser(token);
     
+    if (authError) throw new Error(`Authentication error: ${authError.message}`);
+    
+    const user = data.user;
     if (!user?.email) throw new Error("User not authenticated or email not available");
+
+    console.log(`Creating checkout session for user: ${user.email}`);
 
     // Initialize Stripe
     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
@@ -38,7 +42,13 @@ serve(async (req) => {
     let customerId;
     if (customers.data.length > 0) {
       customerId = customers.data[0].id;
+      console.log(`Found existing Stripe customer: ${customerId}`);
+    } else {
+      console.log("No existing Stripe customer found, will create one during checkout");
     }
+
+    // Get origin for success and cancel URLs
+    const origin = req.headers.get("origin") || "http://localhost:3000";
 
     // Create a checkout session
     const session = await stripe.checkout.sessions.create({
@@ -56,9 +66,16 @@ serve(async (req) => {
         },
       ],
       mode: "subscription",
-      success_url: `${req.headers.get("origin")}/dashboard`,
-      cancel_url: `${req.headers.get("origin")}/premium`,
+      success_url: `${origin}/premium?success=true`,
+      cancel_url: `${origin}/premium?canceled=true`,
+      allow_promotion_codes: true,
+      billing_address_collection: "auto",
+      metadata: {
+        userId: user.id,
+      },
     });
+
+    console.log(`Checkout session created: ${session.id}`);
 
     return new Response(JSON.stringify({ url: session.url }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
