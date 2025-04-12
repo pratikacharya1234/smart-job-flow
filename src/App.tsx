@@ -12,6 +12,7 @@ import CoverLetterPage from "./pages/CoverLetterPage";
 import AnalyzerPage from "./pages/AnalyzerPage";
 import TrackerPage from "./pages/TrackerPage";
 import AuthPage from "./pages/AuthPage";
+import PremiumPage from "./pages/PremiumPage";
 import NotFound from "./pages/NotFound";
 import Layout from "./components/Layout";
 import { UserProvider } from "./contexts/UserContext";
@@ -31,6 +32,11 @@ const App = () => (
             <Routes>
               <Route path="/" element={<LandingPage />} />
               <Route path="/auth" element={<AuthPage />} />
+              <Route path="/premium" element={
+                <ProtectedRoute>
+                  <Layout><PremiumPage /></Layout>
+                </ProtectedRoute>
+              } />
               <Route path="/dashboard" element={
                 <ProtectedRoute>
                   <Layout><Dashboard /></Layout>
