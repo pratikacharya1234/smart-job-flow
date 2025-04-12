@@ -1,13 +1,34 @@
 
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
-import { Home, FileText, FileSignature, BarChart2, Trello, User, Settings, LogOut } from 'lucide-react';
+import { Home, FileText, FileSignature, BarChart2, Trello, User, Settings, LogOut, Crown } from 'lucide-react';
 import { useUser } from '@/contexts/UserContext';
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 const Sidebar = () => {
   const location = useLocation();
   const { user, logout } = useUser();
   
+  const { data: subscriptionData } = useQuery({
+    queryKey: ["sidebar-subscription-status"],
+    queryFn: async () => {
+      try {
+        const { data, error } = await supabase.functions.invoke("check-subscription");
+        
+        if (error) {
+          console.error("Error checking subscription:", error);
+          return { subscribed: false };
+        }
+        
+        return data;
+      } catch (error) {
+        console.error("Failed to check subscription status:", error);
+        return { subscribed: false };
+      }
+    },
+  });
+
   const navItems = [
     { name: 'Dashboard', href: '/dashboard', icon: <Home className="h-5 w-5" /> },
     { name: 'Resume Builder', href: '/resume', icon: <FileText className="h-5 w-5" /> },
@@ -51,24 +72,44 @@ const Sidebar = () => {
           <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center">
             <User className="h-5 w-5 text-gray-500" />
           </div>
-          <div>
+          <div className="flex flex-col">
             <p className="text-sm font-medium">
               {user.name || 'Guest User'}
             </p>
             <p className="text-xs text-gray-500">
               {user.email || 'guest@example.com'}
             </p>
+            {subscriptionData?.subscribed && (
+              <span className="text-xs text-brand-purple flex items-center mt-1">
+                <Crown className="h-3 w-3 mr-1" /> Premium
+              </span>
+            )}
           </div>
         </div>
         
         <div className="flex flex-col space-y-2">
           <Link
-            to="/dashboard"
-            className="flex items-center px-3 py-2 text-sm font-medium text-gray-600 hover:text-brand-purple rounded-md hover:bg-brand-purple/5"
+            to="/profile"
+            className={cn(
+              'flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors',
+              location.pathname === '/profile'
+                ? 'text-brand-purple bg-brand-purple/10'
+                : 'text-gray-600 hover:text-brand-purple hover:bg-brand-purple/5'
+            )}
           >
-            <Settings className="h-4 w-4 mr-3" />
-            <span>Settings</span>
+            <User className="h-4 w-4 mr-3" />
+            <span>Edit Profile</span>
           </Link>
+          
+          {!subscriptionData?.subscribed && (
+            <Link
+              to="/premium"
+              className="flex items-center px-3 py-2 text-sm font-medium text-brand-purple hover:bg-brand-purple/5 rounded-md transition-colors"
+            >
+              <Crown className="h-4 w-4 mr-3" />
+              <span>Upgrade to Pro</span>
+            </Link>
+          )}
           
           <button
             onClick={logout}

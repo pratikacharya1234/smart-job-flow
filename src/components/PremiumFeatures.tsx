@@ -99,7 +99,7 @@ export default function PremiumFeatures() {
           <CardHeader>
             <CardTitle>Premium Plan</CardTitle>
             <CardDescription>All features unlocked</CardDescription>
-            <div className="text-3xl font-bold mt-2">$9.99<span className="text-base font-normal">/month</span></div>
+            <div className="text-3xl font-bold mt-2">$5.99<span className="text-base font-normal">/month</span></div>
           </CardHeader>
           <CardContent className="space-y-2">
             {features.map((feature) => (

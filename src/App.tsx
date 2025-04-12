@@ -13,6 +13,7 @@ import AnalyzerPage from "./pages/AnalyzerPage";
 import TrackerPage from "./pages/TrackerPage";
 import AuthPage from "./pages/AuthPage";
 import PremiumPage from "./pages/PremiumPage";
+import EditProfilePage from "./pages/EditProfilePage";
 import NotFound from "./pages/NotFound";
 import Layout from "./components/Layout";
 import { UserProvider } from "./contexts/UserContext";
@@ -60,6 +61,11 @@ const App = () => (
               <Route path="/tracker" element={
                 <ProtectedRoute>
                   <Layout><TrackerPage /></Layout>
+                </ProtectedRoute>
+              } />
+              <Route path="/profile" element={
+                <ProtectedRoute>
+                  <Layout><EditProfilePage /></Layout>
                 </ProtectedRoute>
               } />
               <Route path="*" element={<NotFound />} />
