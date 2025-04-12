@@ -1,7 +1,7 @@
 
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { FileText, FileSignature, BarChart2, Trello, Plus, Briefcase, ChevronRight } from 'lucide-react';
+import { FileText, FileSignature, BarChart2, Trello, Plus, Briefcase, ChevronRight, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useUser } from '@/contexts/UserContext';
@@ -11,10 +11,12 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { useAuth } from '@/contexts/AuthContext';
 
 const Dashboard = () => {
-  const { user, updateProfile } = useUser();
-  const { jobs, addJob } = useJobs();
+  const { user: userProfile, updateProfile } = useUser();
+  const { user: authUser } = useAuth();
+  const { jobs, addJob, loading: jobsLoading } = useJobs();
   
   const [newJobTitle, setNewJobTitle] = useState("");
   const [newJobCompany, setNewJobCompany] = useState("");
@@ -29,24 +31,24 @@ const Dashboard = () => {
     let completedFields = 0;
     const totalFields = 6; // name, email, phone, location, title, summary
     
-    if (user.name) completedFields++;
-    if (user.email) completedFields++;
-    if (user.phone) completedFields++;
-    if (user.location) completedFields++;
-    if (user.title) completedFields++;
-    if (user.summary) completedFields++;
+    if (userProfile.name) completedFields++;
+    if (userProfile.email) completedFields++;
+    if (userProfile.phone) completedFields++;
+    if (userProfile.location) completedFields++;
+    if (userProfile.title) completedFields++;
+    if (userProfile.summary) completedFields++;
     
     setProfileProgress(Math.round((completedFields / totalFields) * 100));
-  }, [user]);
+  }, [userProfile]);
   
   // Job statistics
   const totalJobs = jobs.length;
   const appliedJobs = jobs.filter(job => job.status === "Applied" || job.status === "Interview" || job.status === "Offer").length;
   const interviewJobs = jobs.filter(job => job.status === "Interview" || job.status === "Offer").length;
   
-  const handleAddJob = () => {
+  const handleAddJob = async () => {
     if (newJobTitle && newJobCompany) {
-      addJob({
+      await addJob({
         title: newJobTitle,
         company: newJobCompany,
         location: newJobLocation,
@@ -67,6 +69,15 @@ const Dashboard = () => {
       setIsDialogOpen(false);
     }
   };
+
+  if (jobsLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[70vh]">
+        <Loader2 className="h-8 w-8 animate-spin text-brand-purple mb-4" />
+        <p className="text-gray-500">Loading your dashboard...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8">
@@ -148,7 +159,7 @@ const Dashboard = () => {
       <Card className="bg-gradient-to-r from-brand-purple/10 to-brand-purple-light/5 border-none">
         <CardContent className="pt-6">
           <h2 className="text-2xl font-bold mb-2">
-            Welcome{user.name ? `, ${user.name}` : ''}!
+            Welcome{userProfile.name ? `, ${userProfile.name}` : authUser?.user_metadata?.name ? `, ${authUser.user_metadata.name}` : ''}!
           </h2>
           <p className="text-gray-600 mb-4">
             {profileProgress < 50 
@@ -164,7 +175,7 @@ const Dashboard = () => {
               <Progress value={profileProgress} className="h-2 w-full" />
             </div>
             {profileProgress < 100 && (
-              <Link to="/dashboard">
+              <Link to="/profile">
                 <Button size="sm" variant="outline">
                   Complete Profile
                 </Button>

@@ -1,6 +1,6 @@
 
 import { useState } from 'react';
-import { Move, Plus, MoreVertical, Trash2, FileText, PenLine, CalendarClock, ExternalLink } from 'lucide-react';
+import { Move, Plus, MoreVertical, Trash2, FileText, PenLine, CalendarClock, ExternalLink, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useJobs, JobStatus, JobApplication } from '@/contexts/JobContext';
@@ -11,12 +11,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { toast } from '@/components/ui/use-toast';
 import { Link } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
 
 // Job status columns order
 const BOARD_COLUMNS: JobStatus[] = ["To Apply", "Applied", "Interview", "Offer", "Rejected"];
 
 const TrackerPage = () => {
-  const { jobs, addJob, updateJob, deleteJob, updateJobStatus, getJobsByStatus } = useJobs();
+  const { jobs, addJob, updateJob, deleteJob, updateJobStatus, getJobsByStatus, loading } = useJobs();
+  const { user } = useAuth();
 
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [newJobTitle, setNewJobTitle] = useState("");
@@ -27,7 +29,7 @@ const TrackerPage = () => {
   const [editingJob, setEditingJob] = useState<JobApplication | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
-  const handleAddJob = () => {
+  const handleAddJob = async () => {
     if (!newJobTitle.trim() || !newJobCompany.trim()) {
       toast({
         variant: "destructive",
@@ -37,7 +39,7 @@ const TrackerPage = () => {
       return;
     }
 
-    addJob({
+    await addJob({
       title: newJobTitle,
       company: newJobCompany,
       location: newJobLocation,
@@ -54,32 +56,18 @@ const TrackerPage = () => {
     setNewJobDescription("");
     setNewJobUrl("");
     setIsAddDialogOpen(false);
-
-    toast({
-      title: "Job added",
-      description: "New job has been added to your tracker",
-    });
   };
 
-  const handleEditJob = () => {
+  const handleEditJob = async () => {
     if (!editingJob) return;
 
-    updateJob(editingJob.id, editingJob);
+    await updateJob(editingJob.id, editingJob);
     setEditingJob(null);
     setIsEditDialogOpen(false);
-
-    toast({
-      title: "Job updated",
-      description: "Job details have been updated",
-    });
   };
 
-  const handleDeleteJob = (id: string) => {
-    deleteJob(id);
-    toast({
-      title: "Job deleted",
-      description: "Job has been removed from your tracker",
-    });
+  const handleDeleteJob = async (id: string) => {
+    await deleteJob(id);
   };
 
   const handleEditDialogOpen = (job: JobApplication) => {
@@ -95,21 +83,25 @@ const TrackerPage = () => {
     e.preventDefault();
   };
 
-  const handleDrop = (e: React.DragEvent, status: JobStatus) => {
+  const handleDrop = async (e: React.DragEvent, status: JobStatus) => {
     e.preventDefault();
     const jobId = e.dataTransfer.getData('jobId');
-    updateJobStatus(jobId, status);
-    
-    toast({
-      title: "Job status updated",
-      description: `Job moved to "${status}" status`,
-    });
+    await updateJobStatus(jobId, status);
   };
 
   const formatDate = (dateString?: string) => {
     if (!dateString) return 'Not set';
     return new Date(dateString).toLocaleDateString();
   };
+
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[70vh]">
+        <Loader2 className="h-8 w-8 animate-spin text-brand-purple mb-4" />
+        <p className="text-gray-500">Loading your job applications...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -187,6 +179,14 @@ const TrackerPage = () => {
           </DialogContent>
         </Dialog>
       </div>
+
+      {!user && (
+        <div className="bg-yellow-50 border border-yellow-200 p-4 rounded-md mb-6">
+          <p className="text-yellow-800 text-sm">
+            You need to sign in to save your job applications. <Link to="/auth" className="text-brand-purple font-medium hover:underline">Sign in now</Link>
+          </p>
+        </div>
+      )}
 
       <div className="kanban-grid overflow-x-auto pb-6">
         {BOARD_COLUMNS.map((status) => (
@@ -389,9 +389,6 @@ const TrackerPage = () => {
                   onChange={(e) => setEditingJob({ 
                     ...editingJob, 
                     status: e.target.value as JobStatus,
-                    ...(e.target.value === "Applied" && !editingJob.dateApplied
-                      ? { dateApplied: new Date().toISOString() }
-                      : {}),
                   })}
                 >
                   {BOARD_COLUMNS.map((status) => (

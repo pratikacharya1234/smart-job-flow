@@ -9,7 +9,96 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      jobs: {
+        Row: {
+          company: string
+          date_added: string
+          date_applied: string | null
+          date_updated: string
+          description: string | null
+          fit_score: number | null
+          id: string
+          location: string | null
+          notes: string | null
+          status: string
+          title: string
+          url: string | null
+          user_id: string
+        }
+        Insert: {
+          company: string
+          date_added?: string
+          date_applied?: string | null
+          date_updated?: string
+          description?: string | null
+          fit_score?: number | null
+          id?: string
+          location?: string | null
+          notes?: string | null
+          status?: string
+          title: string
+          url?: string | null
+          user_id: string
+        }
+        Update: {
+          company?: string
+          date_added?: string
+          date_applied?: string | null
+          date_updated?: string
+          description?: string | null
+          fit_score?: number | null
+          id?: string
+          location?: string | null
+          notes?: string | null
+          status?: string
+          title?: string
+          url?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          education: Json | null
+          email: string | null
+          experience: Json | null
+          id: string
+          location: string | null
+          name: string | null
+          phone: string | null
+          skills: string[] | null
+          summary: string | null
+          title: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          education?: Json | null
+          email?: string | null
+          experience?: Json | null
+          id: string
+          location?: string | null
+          name?: string | null
+          phone?: string | null
+          skills?: string[] | null
+          summary?: string | null
+          title?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          education?: Json | null
+          email?: string | null
+          experience?: Json | null
+          id?: string
+          location?: string | null
+          name?: string | null
+          phone?: string | null
+          skills?: string[] | null
+          summary?: string | null
+          title?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
