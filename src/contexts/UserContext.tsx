@@ -3,6 +3,7 @@ import { createContext, useState, useContext, useEffect, ReactNode } from "react
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./AuthContext";
 import { toast } from "@/components/ui/use-toast";
+import { Json } from "@/integrations/supabase/types";
 
 interface Experience {
   id: string;
@@ -97,6 +98,60 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
         
         if (data) {
           // Transform data from database format to app format
+          // Parse and validate experience data
+          let parsedExperiences: Experience[] = [];
+          if (Array.isArray(data.experience)) {
+            parsedExperiences = data.experience.map((exp: Json) => {
+              // Ensure each experience has the required fields
+              if (typeof exp === 'object' && exp !== null) {
+                return {
+                  id: (exp as any).id || '',
+                  company: (exp as any).company || '',
+                  title: (exp as any).title || '',
+                  startDate: (exp as any).startDate || '',
+                  endDate: (exp as any).endDate || '',
+                  description: (exp as any).description || '',
+                  isCurrentRole: Boolean((exp as any).isCurrentRole),
+                };
+              }
+              return {
+                id: '',
+                company: '',
+                title: '',
+                startDate: '',
+                endDate: '',
+                description: '',
+                isCurrentRole: false,
+              };
+            });
+          }
+          
+          // Parse and validate education data
+          let parsedEducation: Education[] = [];
+          if (Array.isArray(data.education)) {
+            parsedEducation = data.education.map((edu: Json) => {
+              // Ensure each education has the required fields
+              if (typeof edu === 'object' && edu !== null) {
+                return {
+                  id: (edu as any).id || '',
+                  institution: (edu as any).institution || '',
+                  degree: (edu as any).degree || '',
+                  field: (edu as any).field || '',
+                  startDate: (edu as any).startDate || '',
+                  endDate: (edu as any).endDate || '',
+                };
+              }
+              return {
+                id: '',
+                institution: '',
+                degree: '',
+                field: '',
+                startDate: '',
+                endDate: '',
+              };
+            });
+          }
+          
           setUser({
             name: data.name || authUser.user_metadata?.name || '',
             email: data.email || authUser.email || '',
@@ -105,8 +160,8 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
             title: data.title || '',
             summary: data.summary || '',
             isLoggedIn: true,
-            experiences: Array.isArray(data.experience) ? data.experience : [],
-            education: Array.isArray(data.education) ? data.education : [],
+            experiences: parsedExperiences,
+            education: parsedEducation,
             skills: Array.isArray(data.skills) ? data.skills : [],
           });
         } else {
